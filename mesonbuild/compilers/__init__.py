@@ -88,6 +88,8 @@ __all__ = [
     'ValaCompiler',
     'VisualStudioCCompiler',
     'VisualStudioCPPCompiler',
+    'WatcomCCompiler',
+    'WatcomCPPCompiler',
 ]
 
 # Bring symbols from each module into compilers sub-package namespace
@@ -129,6 +131,7 @@ from .c import (
     IntelCCompiler,
     CcrxCCompiler,
     VisualStudioCCompiler,
+    WatcomCCompiler,
 )
 from .cpp import (
     CPPCompiler,
@@ -141,6 +144,7 @@ from .cpp import (
     IntelCPPCompiler,
     CcrxCPPCompiler,
     VisualStudioCPPCompiler,
+    WatcomCPPCompiler,
 )
 from .cs import MonoCompiler, VisualStudioCsCompiler
 from .d import (

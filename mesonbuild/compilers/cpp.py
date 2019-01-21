@@ -30,6 +30,7 @@ from .compilers import (
     ArmCompiler,
     ArmclangCompiler,
     CcrxCompiler,
+    WatcomCompiler,
 )
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES
 
@@ -305,6 +306,12 @@ class IntelCPPCompiler(IntelCompiler, CPPCompiler):
 
     def get_option_link_args(self, options):
         return []
+
+
+class WatcomCPPCompiler(WatcomCompiler, CPPCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+        WatcomCompiler.__init__(self, CompilerType.WATCOM_STANDARD)
 
 
 class VisualStudioCPPCompiler(VisualStudioCCompiler, CPPCompiler):

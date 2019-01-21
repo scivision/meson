@@ -71,6 +71,8 @@ from .compilers import (
     ValaCompiler,
     VisualStudioCCompiler,
     VisualStudioCPPCompiler,
+    WatcomCCompiler,
+    WatcomCPPCompiler,
 )
 
 build_filename = 'meson.build'
@@ -609,6 +611,8 @@ class Environment:
                 arg = '--vsn'
             elif 'ccrx' in compiler[0]:
                 arg = '-v'
+            elif 'owcc' in compiler[0]:  # Watcom
+                arg = '-v'
             else:
                 arg = '--version'
             try:
@@ -722,6 +726,10 @@ class Environment:
                 compiler_type = CompilerType.CCRX_WIN
                 cls = CcrxCCompiler if lang == 'c' else CcrxCPPCompiler
                 return cls(ccache + compiler, version, compiler_type, is_cross, exe_wrap, full_version=full_version)
+            if 'Watcom' in out:
+                cls = WatcomCCompiler if lang == 'c' else WatcomCPPCompiler
+                return cls(ccache + compiler, version, is_cross, exe_wrap)
+
 
         self._handle_exceptions(popen_exceptions, compilers)
 

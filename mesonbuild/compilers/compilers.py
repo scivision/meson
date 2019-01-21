@@ -1310,6 +1310,8 @@ class CompilerType(enum.Enum):
     CCRX_WIN = 40
 
     PGI_STANDARD = 50
+    
+    WATCOM_STANDARD = 60
 
     @property
     def is_standard_compiler(self):
@@ -1621,8 +1623,44 @@ class PGICompiler:
 
     def get_allow_undefined_link_args(self):
         return []
+        
+        
+class WatcomCompiler:
+    def __init__(self, compiler_type):
+        self.id = 'watcom'
+        self.compiler_type = compiler_type
+        default_warn_args = ['-Wall']
+        self.warn_args = {'1': default_warn_args,
+                          '2': default_warn_args,
+                          '3': default_warn_args}
+                          
+                          
+    def get_buildtype_linker_args(self, buildtype: str):
+        return gnulike_buildtype_linker_args[buildtype]
+                          
+    def get_debug_args(self, is_debug: bool):
+        return clike_debug_args[is_debug]
+    
+    def get_buildtype_args(self, buildtype: str):
+        return gnulike_buildtype_args[buildtype]
+        
+    def get_optimization_args(self, optimization_level: str):
+        return clike_optimization_args[optimization_level]
 
+    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir: str):
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-I' or i[:2] == '-L':
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
 
+    def get_dependency_gen_args(self, outtarget, outfile):
+        return []
+        
+    def get_always_args(self):
+        val = super().get_always_args()
+        val.remove('-pipe')
+        return val
+            
+            
 class ElbrusCompiler(GnuCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
     # PCH, LTO, sanitizers and color output as of version 1.21.x.

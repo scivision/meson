@@ -28,6 +28,7 @@ These are return values of the `get_id` (Compiler family) and
 | rustc     | Rust compiler                    |                                |
 | sun       | Sun Fortran compiler             |                                |
 | valac     | Vala compiler                    |                                |
+| watcom    | Watcom C/C++/FORTRAN77 compilers |                                |
 
 ## Script environment variables
 

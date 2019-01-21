@@ -40,12 +40,14 @@ from .compilers import (
     ClangCompiler,
     Compiler,
     CompilerArgs,
+    CompilerType,
     CrossNoRunException,
     GnuCompiler,
     ElbrusCompiler,
     IntelCompiler,
     RunResult,
     CcrxCompiler,
+    WatcomCompiler,
 )
 
 gnu_compiler_internal_libs = ('m', 'c', 'pthread', 'dl', 'rt')
@@ -1275,6 +1277,12 @@ class IntelCCompiler(IntelCompiler, CCompiler):
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
+
+
+class WatcomCCompiler(WatcomCompiler, CCompiler):
+    def __init__(self, exelist, version, is_cross, exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, is_cross, exe_wrapper, **kwargs)
+        WatcomCompiler.__init__(self, CompilerType.WATCOM_STANDARD)
 
 
 class VisualStudioCCompiler(CCompiler):
