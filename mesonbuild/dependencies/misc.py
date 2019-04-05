@@ -20,6 +20,7 @@ import os
 import re
 import shlex
 import sysconfig
+from typing import List, Dict
 
 from .. import mlog
 from .. import mesonlib
@@ -148,6 +149,13 @@ class NetCDFDependency(ExternalDependency):
                 self.pcdep.append(pkgdep)
 
 class MPIDependency(ExternalDependency):
+    """
+    This module attempts to find MPI libraries in the following order:
+
+    1. Intel MPI
+    2. OpenMPI
+    3. MSMPI (not for Fortran, except Intel Fortran compiler)
+    """
 
     def __init__(self, environment, kwargs):
         language = kwargs.get('language', 'c')
@@ -156,19 +164,21 @@ class MPIDependency(ExternalDependency):
         kwargs['silent'] = True
         self.is_found = False
 
-        # NOTE: Only OpenMPI supplies a pkg-config file at the moment.
+        impi = self._intel_mpi_params(environment, language)
+
+        # PkgConfig: tell us where Intel MPI or OpenMPI is.
         if language == 'c':
             env_vars = ['MPICC']
-            pkgconfig_files = ['ompi-c']
-            default_wrappers = ['mpicc']
+            pkgconfig_files = impi['pc'] + ['ompi-c']
+            default_wrappers = impi['c'] + ['mpicc']
         elif language == 'cpp':
             env_vars = ['MPICXX']
-            pkgconfig_files = ['ompi-cxx']
-            default_wrappers = ['mpic++', 'mpicxx', 'mpiCC']
+            pkgconfig_files = impi['pc'] + ['ompi-cxx']
+            default_wrappers = impi['cxx'] + ['mpic++', 'mpicxx', 'mpiCC']
         elif language == 'fortran':
             env_vars = ['MPIFC', 'MPIF90', 'MPIF77']
-            pkgconfig_files = ['ompi-fort']
-            default_wrappers = ['mpifort', 'mpif90', 'mpif77']
+            pkgconfig_files = impi['pc'] + ['ompi-fort']
+            default_wrappers = impi['fortran'] + ['mpifort', 'mpif90', 'mpif77']
         else:
             raise DependencyException('Language {} is not supported with MPI.'.format(language))
 
@@ -219,6 +229,28 @@ class MPIDependency(ExternalDependency):
             if result is not None:
                 self.is_found = True
                 self.version, self.compile_args, self.link_args = result
+
+    def _intel_mpi_params(self, environment, language: str) -> Dict[str, List[str]]:
+        """
+        For Windows and Fortran, Intel MPI is only for Intel compiler at this time.
+        """
+        impi = {'pc': [], 'c': [], 'cxx': [], 'fortran': []}
+
+        if 'MKLROOT' in os.environ:
+            if (mesonlib.is_windows() and language == 'fortran' and
+               environment.detect_fortran_compiler(False).name_string() != 'intel'):
+                return impi
+
+            if self.static:
+                impi['pc'] = ['mkl-static-lp64-iomp']
+            else:
+                impi['pc'] = ['mkl-dynamic-lp64-iomp']
+
+            impi['c'] = ['mpiicc']
+            impi['cxx'] = ['mpiicpc']
+            impi['fortran'] = ['mpiifort']
+
+        return impi
 
     def _filter_compile_args(self, args):
         """
