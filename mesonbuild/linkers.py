@@ -690,3 +690,8 @@ class ArmClangDynamicLinker(ArmDynamicLinker):
 
     def import_library_args(self, implibname: str) -> typing.List[str]:
         return ['--symdefs=' + implibname]
+
+
+class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
+
+    """PGI linker."""
