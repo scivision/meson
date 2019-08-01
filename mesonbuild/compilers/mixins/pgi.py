@@ -18,7 +18,7 @@ import typing
 import os
 from pathlib import Path
 
-from ..compilers import clike_debug_args, clike_optimization_args
+from ..compilers import Compiler, clike_debug_args, clike_optimization_args
 
 if typing.TYPE_CHECKING:
     from ..compilers import CompilerType
@@ -33,7 +33,7 @@ pgi_buildtype_args = {
 }  # type: typing.Dict[str, typing.List[str]]
 
 
-class PGICompiler:
+class PGICompiler(Compiler):
     def __init__(self, compiler_type: 'CompilerType'):
         self.base_options = ['b_pch']
         self.id = 'pgi'
