@@ -697,6 +697,9 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     """PGI linker."""
 
+    def get_allow_undefined_args(self) -> typing.List[str]:
+        return []
+
 
 class VisualStudioLikeLinkerMixin:
 
