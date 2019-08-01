@@ -713,6 +713,11 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             return ['-shared']
         return []
 
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> typing.List[str]:
+        return ['-R' + os.path.join(build_dir, p) for p in rpath_paths]
+
 class VisualStudioLikeLinkerMixin:
 
     _BUILDTYPE_ARGS = {
