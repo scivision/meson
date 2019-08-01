@@ -709,7 +709,7 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # PGI -shared is Linux only.
         if mesonlib.is_windows():
             return ['-Bdynamic', '-Mmakedll']
-        elif not self.compiler_type.is_osx_compiler:
+        elif mesonlib.is_linux:
             return ['-shared']
         return []
 
