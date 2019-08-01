@@ -54,14 +54,6 @@ class PGICompiler:
     def gen_import_library_args(self, implibname: str) -> typing.List[str]:
         return []
 
-    def get_std_shared_lib_link_args(self) -> typing.List[str]:
-        # PGI -shared is Linux only.
-        if self.compiler_type.is_windows_compiler:
-            return ['-Bdynamic', '-Mmakedll']
-        elif not self.compiler_type.is_osx_compiler:
-            return ['-shared']
-        return []
-
     def get_pic_args(self) -> typing.List[str]:
         # PGI -fPIC is Linux only.
         if self.compiler_type.is_osx_compiler or self.compiler_type.is_windows_compiler:

@@ -705,6 +705,13 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                         is_shared_module: bool) -> typing.List[str]:
         return []
 
+    def get_std_shared_lib_args(self) -> typing.List[str]:
+        # PGI -shared is Linux only.
+        if mesonlib.is_windows():
+            return ['-Bdynamic', '-Mmakedll']
+        elif not self.compiler_type.is_osx_compiler:
+            return ['-shared']
+        return []
 
 class VisualStudioLikeLinkerMixin:
 
