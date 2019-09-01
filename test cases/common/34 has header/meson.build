@@ -1,9 +1,8 @@
 project('has header', 'c')
 
+compilers = [meson.get_compiler('c')]
 if add_languages('cpp', required: false)
-  cpp = meson.get_compiler('cpp')
-else
-  error('MESON_SKIP_TEST: No C++ compiler available.')
+  compilers += meson.get_compiler('cpp')
 endif
 
 host_system = host_machine.system()
@@ -24,7 +23,7 @@ else
 endif
 
 foreach fallback : fallbacks
-  foreach comp : [meson.get_compiler('c'), meson.get_compiler('cpp')]
+  foreach comp : compilers
     assert(comp.has_header('stdio.h', prefix : fallback), 'Stdio missing.')
 
     # stdio.h doesn't actually need stdlib.h, but just test that setting the
