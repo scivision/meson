@@ -1,10 +1,14 @@
-project('default options', 'cpp', 'c', default_options : [
+project('default options', 'c', default_options : [
   'prefix=/absoluteprefix',
   'buildtype=debugoptimized',
   'cpp_std=c++11',
   'cpp_eh=none',
   'warning_level=3',
   ])
+
+if not add_languages('cpp', required: false)
+  error('MESON_SKIP_TEST: C++ compiler not available')
+endif
 
 assert(get_option('buildtype') == 'debugoptimized', 'Build type default value wrong.')
 
