@@ -1,8 +1,11 @@
-project('add language', 'c')
+project('add language')
+
+assert(add_languages('c'), 'add_languages() returned false on success')
 
 test('C', executable('cprog', 'prog.c'))
 
-assert(add_languages('cpp'), 'Add_languages returned false on success')
 assert(not add_languages('klingon', required : false), 'Add_languages returned true on failure.')
 
-test('C++', executable('cppprog', 'prog.cc'))
+if add_languages('cpp', required: false)
+  test('C++', executable('cppprog', 'prog.cc'))
+endif
