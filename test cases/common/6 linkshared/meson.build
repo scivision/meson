@@ -1,9 +1,8 @@
 project('shared library linking test', 'c')
 
-if add_languages('cpp', required: false)
+cpp_ok = add_languages('cpp', required: false)
+if cpp_ok
   cpp = meson.get_compiler('cpp')
-else
-  error('MESON_SKIP_TEST: No C++ compiler available.')
 endif
 
 lib = shared_library('mylib',
@@ -13,6 +12,8 @@ exe = executable('prog', 'main.c', link_with : lib, install : true)
 
 test('runtest', exe)
 
-cpplib = shared_library('mycpplib', 'cpplib.cpp')
-cppexe = executable('cppprog', 'cppmain.cpp', link_with : cpplib)
-test('cpptest', cppexe)
+if cpp_ok
+  cpplib = shared_library('mycpplib', 'cpplib.cpp')
+  cppexe = executable('cppprog', 'cppmain.cpp', link_with : cpplib)
+  test('cpptest', cppexe)
+endif
