@@ -1,20 +1,25 @@
 project('tryrun', 'c')
 
-if add_languages('cpp', required: false)
-  cpp = meson.get_compiler('cpp')
-else
-  error('MESON_SKIP_TEST: No C++ compiler available.')
-endif
+cpp_ok = add_languages('cpp', required: false)
 
 # Complex to exercise all code paths.
 if meson.is_cross_build()
   if meson.has_exe_wrapper()
-    compilers = [meson.get_compiler('c', native : false), meson.get_compiler('cpp', native : false)]
+    compilers = [meson.get_compiler('c', native : false)]
+    if cpp_ok
+      compilers += meson.get_compiler('cpp', native : false)
+    endif
   else
-    compilers = [meson.get_compiler('c', native : true), meson.get_compiler('cpp', native : true)]
+    compilers = [meson.get_compiler('c', native : true)]
+    if cpp_ok
+      compilers += meson.get_compiler('cpp', native : true)
+    endif
   endif
 else
-  compilers = [meson.get_compiler('c'), meson.get_compiler('cpp')]
+  compilers = [meson.get_compiler('c')]
+  if cpp_ok
+    compilers += meson.get_compiler('cpp')
+  endif
 endif
 
 ok_code = '''#include<stdio.h>
