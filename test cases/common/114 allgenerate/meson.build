@@ -1,6 +1,10 @@
 # Must have two languages here to exercise linker language
 # selection bug
-project('all sources generated', 'c', 'cpp')
+project('all sources generated', 'c')
+
+if not add_languages('cpp', required: false)
+  error('MESON_SKIP_TEST: C++ compiler not available')
+endif
 
 comp = find_program('converter.py')
 
