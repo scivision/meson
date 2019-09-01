@@ -1,9 +1,8 @@
 project('sizeof', 'c')
 
-if add_languages('cpp', required: false)
+cpp_ok = add_languages('cpp', required: false)
+if cpp_ok
   cpp = meson.get_compiler('cpp')
-else
-  error('MESON_SKIP_TEST: No C++ compiler available.')
 endif
 
 # Test with C
@@ -21,6 +20,10 @@ s = configure_file(input : 'prog.c.in', output : 'prog.c', configuration : cd)
 
 e = executable('prog', s)
 test('sizeof test', e)
+
+if not cpp_ok
+  subdir_done()
+endif
 
 # Test with C++
 intsize = cpp.sizeof('int')
