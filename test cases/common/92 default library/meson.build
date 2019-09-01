@@ -1,4 +1,9 @@
-project('default library', 'cpp')
+project('default library')
+
+if not add_languages('cpp', required: false)
+  error('MESON_SKIP_TEST: C++ compiler not available')
+endif
+
 
 flib = library('ef', 'ef.cpp')
 exe = executable('eftest', 'eftest.cpp', link_with : flib)
