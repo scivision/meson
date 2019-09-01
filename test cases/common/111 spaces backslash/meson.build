@@ -1,5 +1,11 @@
 project('comparer', 'c')
 
+cc = meson.get_compiler('c')
+
+if cc.get_id() == 'pgi' and host_machine.system() == 'windows'
+  error('MESON_SKIP_TEST: PGI does not have this character set')
+endif
+
 # Added manually as a c_arg to test handling of include paths with backslashes
 # and spaces. This is especially useful on Windows in vcxproj files since it
 # stores include directories in a separate element that has its own
@@ -7,7 +13,7 @@ project('comparer', 'c')
 include_dir = meson.current_source_dir() + '/include'
 default_c_args = ['-I' + include_dir]
 
-if meson.get_compiler('c').get_argument_syntax() == 'msvc'
+if cc.get_argument_syntax() == 'msvc'
   default_c_args += ['/Faasm output\\']
   # Hack to create the 'asm output' directory in the builddir
   subdir('asm output')
