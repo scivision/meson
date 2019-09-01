@@ -1,9 +1,14 @@
-project('has header symbol', 'c', 'cpp')
+project('has header symbol', 'c')
 
 cc = meson.get_compiler('c')
-cpp = meson.get_compiler('cpp')
-
-foreach comp : [cc, cpp]
+compilers = [cc]
+cpp_ok = false
+if add_languages('cpp', required: false)
+  cpp_ok = true
+  cpp = meson.get_compiler('cpp')
+  compilers += cpp
+endif
+foreach comp : compilers
   assert (comp.has_header_symbol('stdio.h', 'int'), 'base types should always be available')
   assert (comp.has_header_symbol('stdio.h', 'printf'), 'printf function not found')
   assert (comp.has_header_symbol('stdio.h', 'FILE'), 'FILE structure not found')
@@ -19,6 +24,10 @@ endforeach
 if cc.has_function('ppoll') and host_machine.system() == 'linux'
   assert (not cc.has_header_symbol('poll.h', 'ppoll'), 'ppoll should not be accessible without _GNU_SOURCE')
   assert (cc.has_header_symbol('poll.h', 'ppoll', prefix : '#define _GNU_SOURCE'), 'ppoll should be accessible with _GNU_SOURCE')
+endif
+
+if not cpp_ok
+  subdir_done()
 endif
 
 assert (cpp.has_header_symbol('iostream', 'std::iostream'), 'iostream not found in iostream.h')
