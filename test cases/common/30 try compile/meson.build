@@ -1,9 +1,8 @@
 project('try compile', 'c')
 
+compilers = [meson.get_compiler('c')]
 if add_languages('cpp', required: false)
-  cpp = meson.get_compiler('cpp')
-else
-  error('MESON_SKIP_TEST: No C++ compiler available.')
+  compilers += meson.get_compiler('cpp')
 endif
 
 code = '''#include<stdio.h>
@@ -14,7 +13,7 @@ breakcode = '''#include<nonexisting.h>
 void func() { printf("This won't work.\n"); }
 '''
 
-foreach compiler : [meson.get_compiler('c'), meson.get_compiler('cpp')]
+foreach compiler : compilers
   if compiler.compiles(code, name : 'should succeed') == false
     error('Compiler ' + compiler.get_id() + ' is fail.')
   endif
