@@ -1,4 +1,9 @@
-project('trickier generator', 'cpp')
+project('trickier generator')
+
+if not add_languages('cpp', required: false)
+  error('MESON_SKIP_TEST: C++ compiler not available')
+endif
+
 
 comp = find_program('mygen.py')
 subdir('subdir')
