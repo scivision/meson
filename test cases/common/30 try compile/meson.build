@@ -1,4 +1,10 @@
-project('try compile', 'c', 'cpp')
+project('try compile', 'c')
+
+if add_languages('cpp', required: false)
+  cpp = meson.get_compiler('cpp')
+else
+  error('MESON_SKIP_TEST: No C++ compiler available.')
+endif
 
 code = '''#include<stdio.h>
 void func() { printf("Something.\n"); }

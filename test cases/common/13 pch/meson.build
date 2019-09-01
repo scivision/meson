@@ -1,5 +1,11 @@
-project('pch test', 'c', 'cpp',
+project('pch test', 'c',
   meson_version: '>= 0.46.0')
+
+if add_languages('cpp', required: false)
+  cpp = meson.get_compiler('cpp')
+else
+  error('MESON_SKIP_TEST: No C++ compiler available.')
+endif
 
 cc = meson.get_compiler('c')
 cc_id = cc.get_id()

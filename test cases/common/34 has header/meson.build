@@ -1,4 +1,10 @@
-project('has header', 'c', 'cpp')
+project('has header', 'c')
+
+if add_languages('cpp', required: false)
+  cpp = meson.get_compiler('cpp')
+else
+  error('MESON_SKIP_TEST: No C++ compiler available.')
+endif
 
 host_system = host_machine.system()
 

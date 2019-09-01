@@ -1,5 +1,9 @@
 project('test features', 'c')
 
+if host_machine.system() == 'windows' and meson.get_compiler('c').get_id() == 'pgi'
+  error('MESON_SKIP_TEST: PGI on Windows does not have _MSC_VER or unistd.h')
+endif
+
 e1 = executable('cmd_args', 'cmd_args.c')
 e2 = executable('envvars', 'envvars.c')
 e3 = executable('env2vars', 'env2vars.c')

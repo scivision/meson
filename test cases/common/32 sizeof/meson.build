@@ -1,4 +1,10 @@
-project('sizeof', 'c', 'cpp')
+project('sizeof', 'c')
+
+if add_languages('cpp', required: false)
+  cpp = meson.get_compiler('cpp')
+else
+  error('MESON_SKIP_TEST: No C++ compiler available.')
+endif
 
 # Test with C
 cc = meson.get_compiler('c')
@@ -17,8 +23,6 @@ e = executable('prog', s)
 test('sizeof test', e)
 
 # Test with C++
-cpp = meson.get_compiler('cpp')
-
 intsize = cpp.sizeof('int')
 wcharsize = cpp.sizeof('wchar_t', prefix : '#include<wchar.h>')
 

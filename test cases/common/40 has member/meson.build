@@ -1,8 +1,15 @@
-project('has member', 'c', 'cpp')
+project('has member', 'c')
 
-compilers = [meson.get_compiler('c'), meson.get_compiler('cpp')]
+compilers = [meson.get_compiler('c')]
+if add_languages('cpp', required: false)
+  compilers += meson.get_compiler('cpp')
+endif
 
 foreach cc : compilers
+  if cc.get_id() == 'pgi'
+    error('MESON_SKIP_TEST: PGI does not have this functionality')
+  endif
+
   if not cc.has_member('struct tm', 'tm_sec', prefix : '#include<time.h>')
     error('Did not detect member of "struct tm" that exists: "tm_sec"')
   endif

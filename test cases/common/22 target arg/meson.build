@@ -1,4 +1,10 @@
-project('local arg test', 'cpp', 'c')
+project('local arg test', 'c')
+
+if add_languages('cpp', required: false)
+  cpp = meson.get_compiler('cpp')
+else
+  error('MESON_SKIP_TEST: No C++ compiler available.')
+endif
 
 exe1 = executable('prog', 'prog.cc', 'func.c', \
 c_args   : '-DCTHING', \

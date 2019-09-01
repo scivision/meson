@@ -1,4 +1,10 @@
-project('global arg test', 'cpp', 'c')
+project('global arg test', 'c')
+
+if add_languages('cpp', required: false)
+  cpp = meson.get_compiler('cpp')
+else
+  error('MESON_SKIP_TEST: No C++ compiler available.')
+endif
 
 add_global_arguments('-DMYTHING', language : 'c', native : true)
 add_global_arguments('-DMYTHING', language : 'c', native : false)

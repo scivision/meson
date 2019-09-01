@@ -1,4 +1,4 @@
-project('has function', 'c', 'cpp')
+project('has function', 'c')
 
 host_system = host_machine.system()
 
@@ -8,9 +8,15 @@ defines_has_builtin = '''#ifndef __has_builtin
 #error "no __has_builtin"
 #endif
 '''
-compilers = [meson.get_compiler('c'), meson.get_compiler('cpp')]
+compilers = [meson.get_compiler('c')]
+if add_languages('cpp', required: false)
+  compilers += meson.get_compiler('cpp')
+endif
 
 foreach cc : compilers
+  if cc.get_id() == 'pgi'
+    error('MESON_SKIP_TEST: PGI does not have this functionality')
+  endif
   if not cc.has_function('printf', prefix : '#include<stdio.h>',
                          args : unit_test_args)
     error('"printf" function not found (should always exist).')

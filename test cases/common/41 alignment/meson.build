@@ -1,8 +1,15 @@
-project('alignment', 'c', 'cpp')
+project('alignment', 'c')
 
-compilers = [meson.get_compiler('c'), meson.get_compiler('cpp')]
+compilers = [meson.get_compiler('c')]
+if add_languages('cpp', required: false)
+  compilers += meson.get_compiler('cpp')
+endif
 
 foreach cc : compilers
+  if cc.get_id() == 'pgi'
+    error('MESON_SKIP_TEST: PGI does not have this functionality')
+  endif
+
   # These tests should return the same value on all
   # platforms. If (and when) they don't, fix 'em up.
   if cc.alignment('char') != 1

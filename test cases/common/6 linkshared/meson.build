@@ -1,4 +1,10 @@
-project('shared library linking test', 'c', 'cpp')
+project('shared library linking test', 'c')
+
+if add_languages('cpp', required: false)
+  cpp = meson.get_compiler('cpp')
+else
+  error('MESON_SKIP_TEST: No C++ compiler available.')
+endif
 
 lib = shared_library('mylib',
  'libfile.c' # Split to different lines before and after the comma to test parser.

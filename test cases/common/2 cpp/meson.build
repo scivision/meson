@@ -1,6 +1,11 @@
-project('c++ test', 'cpp')
+project('c++ test')
 
-cpp = meson.get_compiler('cpp')
+if add_languages('cpp', required: false)
+  cpp = meson.get_compiler('cpp')
+else
+  error('MESON_SKIP_TEST: No C++ compiler available.')
+endif
+
 if cpp.get_id() == 'intel'
   # Error out if the -std=xxx option is incorrect
   add_project_arguments('-diag-error', '10159', language : 'cpp')
