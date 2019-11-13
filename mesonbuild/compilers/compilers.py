@@ -672,7 +672,7 @@ class Compiler:
     LINKER_PREFIX = None  # type: typing.Union[None, str, typing.List[str]]
 
     def __init__(self, exelist, version, for_machine: MachineChoice, info: 'MachineInfo',
-                 linker: typing.Optional['DynamicLinker'] = None, **kwargs):
+                 linker: 'DynamicLinker' = None, **kwargs):
         if isinstance(exelist, str):
             self.exelist = [exelist]
         elif isinstance(exelist, list):
