@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib, os.path, re, tempfile
+import contextlib
+import os.path
+import re
+import tempfile
 import typing
-from typing import Optional, Tuple, List
 
 from ..linkers import StaticLinker, GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
 from .. import coredata
@@ -44,34 +46,34 @@ lib_suffixes = ('a', 'lib', 'dll', 'dll.a', 'dylib', 'so')
 # Mapping of language to suffixes of files that should always be in that language
 # This means we can't include .h headers here since they could be C, C++, ObjC, etc.
 lang_suffixes = {
-    'c': ('c',),
-    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx'),
-    'cuda': ('cu',),
+    'c': ['c'],
+    'cpp': ['cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx'],
+    'cuda': ['cu'],
     # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
     # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
-    'fortran': ('f90', 'f95', 'f03', 'f08', 'f', 'for', 'ftn', 'fpp'),
-    'd': ('d', 'di'),
-    'objc': ('m',),
-    'objcpp': ('mm',),
-    'rust': ('rs',),
-    'vala': ('vala', 'vapi', 'gs'),
-    'cs': ('cs',),
-    'swift': ('swift',),
-    'java': ('java',),
+    'fortran': ['f90', 'f95', 'f03', 'f08', 'f', 'for', 'ftn', 'fpp'],
+    'd': ['d', 'di'],
+    'objc': ['m'],
+    'objcpp': ['mm'],
+    'rust': ['rs'],
+    'vala': ['vala', 'vapi', 'gs'],
+    'cs': ['cs'],
+    'swift': ['swift'],
+    'java': ['java'],
 }
 all_languages = lang_suffixes.keys()
-cpp_suffixes = lang_suffixes['cpp'] + ('h',)
-c_suffixes = lang_suffixes['c'] + ('h',)
+cpp_suffixes = lang_suffixes['cpp'] + ['h']
+c_suffixes = lang_suffixes['c'] + ['h']
 # List of languages that by default consume and output libraries following the
 # C ABI; these can generally be used interchangebly
-clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran',)
+clib_langs = ['objcpp', 'cpp', 'objc', 'c', 'fortran']
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
-clink_langs = ('d', 'cuda') + clib_langs
-clink_suffixes = ()
-for _l in clink_langs + ('vala',):
+clink_langs = ['d', 'cuda'] + clib_langs
+clink_suffixes = []  # type: typing.List[str]
+for _l in clink_langs + ['vala']:
     clink_suffixes += lang_suffixes[_l]
-clink_suffixes += ('h', 'll', 's')
+clink_suffixes += ['h', 'll', 's']
 
 # Languages that should use LDFLAGS arguments when linking.
 languages_using_ldflags = ('objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda')
@@ -147,7 +149,7 @@ cuda_buildtype_args = {'plain': [],
                        'debugoptimized': [],
                        'release': [],
                        'minsize': [],
-                       }
+                       }  # type: typing.Dict[str, typing.List[str]]
 java_buildtype_args = {'plain': [],
                        'debug': ['-g'],
                        'debugoptimized': ['-g'],
@@ -162,7 +164,7 @@ rust_buildtype_args = {'plain': [],
                        'release': [],
                        'minsize': [],
                        'custom': [],
-                       }
+                       }  # type: typing.Dict[str, typing.List[str]]
 
 d_gdc_buildtype_args = {'plain': [],
                         'debug': [],
@@ -202,7 +204,7 @@ swift_buildtype_args = {'plain': [],
                         'release': [],
                         'minsize': [],
                         'custom': [],
-                        }
+                        }  # type: typing.Dict[str, typing.List[str]]
 
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
                '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']
@@ -552,7 +554,7 @@ class CompilerArgs(list):
         # Remove system/default include paths added with -isystem
         if hasattr(self.compiler, 'get_default_include_dirs'):
             default_dirs = self.compiler.get_default_include_dirs()
-            bad_idx_list = []
+            bad_idx_list = []  # type: typing.List[int]
             for i, each in enumerate(new):
                 # Remove the -isystem and the path if the path is a default path
                 if (each == '-isystem' and
@@ -689,7 +691,7 @@ class Compiler:
         else:
             self.full_version = None
         self.for_machine = for_machine
-        self.base_options = []
+        self.base_options = []  # type: typing.List[str]
         self.linker = linker
         self.info = info
 
@@ -724,7 +726,7 @@ class Compiler:
     def get_default_suffix(self) -> str:
         return self.default_suffix
 
-    def get_define(self, dname, prefix, env, extra_args, dependencies) -> Tuple[str, bool]:
+    def get_define(self, dname, prefix, env, extra_args, dependencies) -> typing.Tuple[str, bool]:
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
     def compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies) -> int:
@@ -733,10 +735,10 @@ class Compiler:
     def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
         raise EnvironmentException('%s does not support compute_parameters_with_absolute_paths ' % self.get_id())
 
-    def has_members(self, typename, membernames, prefix, env, *, extra_args=None, dependencies=None) -> Tuple[bool, bool]:
+    def has_members(self, typename, membernames, prefix, env, *, extra_args=None, dependencies=None) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
 
-    def has_type(self, typename, prefix, env, extra_args, *, dependencies=None) -> Tuple[bool, bool]:
+    def has_type(self, typename, prefix, env, extra_args, *, dependencies=None) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_type ' % self.get_id())
 
     def symbols_have_underscore_prefix(self, env) -> bool:
@@ -799,7 +801,7 @@ class Compiler:
         Returns a tuple of (compile_flags, link_flags) for the specified language
         from the inherited environment
         """
-        def log_var(var, val: Optional[str]):
+        def log_var(var, val: typing.Sequence[str] = None):
             if val:
                 mlog.log('Appending {} from environment: {!r}'.format(var, val))
             else:
@@ -886,19 +888,19 @@ class Compiler:
     def get_option_link_args(self, options: 'OptionDictType') -> typing.List[str]:
         return self.linker.get_option_args(options)
 
-    def check_header(self, *args, **kwargs) -> Tuple[bool, bool]:
+    def check_header(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header(self, *args, **kwargs) -> Tuple[bool, bool]:
+    def has_header(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header_symbol(self, *args, **kwargs) -> Tuple[bool, bool]:
+    def has_header_symbol(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
-    def compiles(self, *args, **kwargs) -> Tuple[bool, bool]:
+    def compiles(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support compile checks.' % self.get_display_language())
 
-    def links(self, *args, **kwargs) -> Tuple[bool, bool]:
+    def links(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support link checks.' % self.get_display_language())
 
     def run(self, *args, **kwargs) -> RunResult:
@@ -910,7 +912,7 @@ class Compiler:
     def alignment(self, *args, **kwargs) -> int:
         raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
-    def has_function(self, *args, **kwargs) -> Tuple[bool, bool]:
+    def has_function(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
 
     @classmethod
@@ -932,12 +934,12 @@ class Compiler:
     def get_program_dirs(self, *args, **kwargs):
         return []
 
-    def has_multi_arguments(self, args, env) -> Tuple[bool, bool]:
+    def has_multi_arguments(self, args, env) -> typing.Tuple[bool, bool]:
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
-    def has_multi_link_arguments(self, args: typing.List[str], env: 'Environment') -> Tuple[bool, bool]:
+    def has_multi_link_arguments(self, args: typing.List[str], env: 'Environment') -> typing.Tuple[bool, bool]:
         return self.linker.has_multi_arguments(args, env)
 
     def _get_compile_output(self, dirname, mode):
@@ -1136,16 +1138,16 @@ class Compiler:
     def remove_linkerlike_args(self, args):
         return [x for x in args if not x.startswith('-Wl')]
 
-    def get_lto_compile_args(self) -> List[str]:
+    def get_lto_compile_args(self) -> typing.List[str]:
         return []
 
-    def get_lto_link_args(self) -> List[str]:
+    def get_lto_link_args(self) -> typing.List[str]:
         return self.linker.get_lto_args()
 
-    def sanitizer_compile_args(self, value: str) -> List[str]:
+    def sanitizer_compile_args(self, value: str) -> typing.List[str]:
         return []
 
-    def sanitizer_link_args(self, value: str) -> List[str]:
+    def sanitizer_link_args(self, value: str) -> typing.List[str]:
         return self.linker.sanitizer_args(value)
 
     def get_asneeded_args(self) -> typing.List[str]:
