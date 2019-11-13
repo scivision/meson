@@ -727,7 +727,7 @@ class Compiler:
     def get_define(self, dname, prefix, env, extra_args, dependencies) -> Tuple[str, bool]:
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
-    def compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies) -> int:
+    def compute_int(self, expression, low, high, guess, prefix, env, extra_args=None, dependencies=None) -> int:
         raise EnvironmentException('%s does not support compute_int ' % self.get_id())
 
     def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):

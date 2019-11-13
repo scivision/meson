@@ -18,7 +18,22 @@ import typing
 import os
 from pathlib import Path
 
-from ..compilers import clike_debug_args, clike_optimization_args
+from ..compilers import clike_debug_args, Compiler
+
+if typing.TYPE_CHECKING:
+    from ..fortran import FortranCompiler
+    _Base1 = FortranCompiler
+    _Base2 = Compiler
+else:
+    _Base1 = _Base2 = object
+
+clike_optimization_args = {'0': [],
+                           'g': [],
+                           '1': ['-O1'],
+                           '2': ['-O2'],
+                           '3': ['-O3'],
+                           's': ['-Os'],
+                           }  # typing.Dict[typing.List[str]]
 
 pgi_buildtype_args = {
     'plain': [],
@@ -30,7 +45,7 @@ pgi_buildtype_args = {
 }  # type: typing.Dict[str, typing.List[str]]
 
 
-class PGICompiler:
+class PGICompiler(_Base1, _Base2):
     def __init__(self):
         self.base_options = ['b_pch']
         self.id = 'pgi'
@@ -62,10 +77,13 @@ class PGICompiler:
     def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
         return pgi_buildtype_args[buildtype]
 
-    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
-        return clike_optimization_args[optimization_level]
+    @staticmethod
+    def get_optimization_args(optimization_level: str) -> typing.List[str]:
+        args: typing.List[str] = clike_optimization_args[optimization_level]
+        return args
 
-    def get_debug_args(self, is_debug: bool) -> typing.List[str]:
+    @staticmethod
+    def get_debug_args(is_debug: bool) -> typing.List[str]:
         return clike_debug_args[is_debug]
 
     def compute_parameters_with_absolute_paths(self, parameter_list: typing.List[str], build_dir: str) -> typing.List[str]:
