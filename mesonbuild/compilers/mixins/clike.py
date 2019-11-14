@@ -850,7 +850,7 @@ class CLikeCompiler:
             # FIXME: .lib files can be import or static so we should read the
             # file, figure out which one it is, and reject the wrong kind.
             if isinstance(self, VisualStudioLikeCompiler):
-                shlibext = ['lib']
+                shlibext = ['lib', 'dll']
             else:
                 shlibext = ['dll.a', 'lib', 'dll']
             # Yep, static libraries can also be foo.lib
