@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import CMakeDependency, ExternalDependency, PkgConfigDependency
+import functools
+
+from .base import CMakeDependency, DependencyMethods, ExternalDependency, PkgConfigDependency
 
 
 class CoarrayDependency(ExternalDependency):
@@ -20,51 +22,56 @@ class CoarrayDependency(ExternalDependency):
     Coarrays are a Fortran 2008 feature.
 
     Coarrays are sometimes implemented via external library (GCC+OpenCoarrays),
-    while other compilers just build in support (Cray, IBM, Intel, NAG).
+    while other compilers just build in support (Cray, IBM, Intel).
     Coarrays may be thought of as a high-level language abstraction of
     low-level MPI calls.
     """
     def __init__(self, environment, kwargs: dict):
         super().__init__('coarray', environment, 'fortran', kwargs)
-        kwargs['required'] = False
-        kwargs['silent'] = True
-        self.is_found = False
 
-        cid = self.get_compiler().get_id()
+    @classmethod
+    def _factory(cls, environment, kwargs):
+        methods = cls._process_method_kw(kwargs)
+        candidates = []
+
+        cid = environment.coredata.compilers.host['fortran'].id
         if cid == 'gcc':
             """ OpenCoarrays is the most commonly used method for Fortran Coarray with GCC """
-            # first try pkg-config
-            for pkg in ['caf-openmpi', 'caf']:
-                pkgdep = PkgConfigDependency(pkg, environment, kwargs, language=self.language)
-                if pkgdep.found():
-                    self.compile_args = pkgdep.get_compile_args()
-                    self.link_args = pkgdep.get_link_args()
-                    self.version = pkgdep.get_version()
-                    self.is_found = True
-                    self.pcdep = pkgdep
-                    return
-            # second try CMake
-            kwargs['modules'] = 'OpenCoarrays::caf_mpi'
-            cmakedep = CMakeDependency('OpenCoarrays', environment, kwargs)
-            if cmakedep.found():
-                self.compile_args = cmakedep.get_compile_args()
-                self.link_args = cmakedep.get_link_args()
-                self.version = cmakedep.get_version()
-                self.is_found = True
-                return
-            # give up, just run as single image fallback
-            self.compile_args = ['-fcoarray=single']
-            self.version = 'single image'
-            self.is_found = True
-        elif cid == 'intel':
+            if DependencyMethods.PKGCONFIG in methods:
+                candidates.append(functools.partial(PkgConfigDependency, 'caf-openmpi', environment, kwargs))
+                candidates.append(functools.partial(PkgConfigDependency, 'caf', environment, kwargs))
+            if DependencyMethods.CMAKE in methods:
+                kwargs['modules'] = 'OpenCoarrays::caf_mpi'
+                candidates.append(functools.partial(CMakeDependency, 'OpenCoarrays', environment, kwargs))
+        else:
+            kwargs['cid'] = cid
+            candidates.append(functools.partial(CoarrayFlags, environment, kwargs))
+        return candidates
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE]
+
+
+class CoarrayFlags(ExternalDependency):
+    """ for compilers with intrinsic Coarray support, only flags or nothing needed """
+
+    def __init__(self, environment, kwargs: dict):
+        super().__init__('coarray', environment, 'fortran', kwargs)
+
+        self.is_found = False
+        cid = kwargs['cid']
+
+        if cid == 'intel':
             """ Coarrays are built into Intel compilers, no external library needed """
-            self.is_found = True
             self.link_args = ['-coarray=shared']
             self.compile_args = self.link_args
+            self.is_found = True
         elif cid == 'intel-cl':
             """ Coarrays are built into Intel compilers, no external library needed """
-            self.is_found = True
             self.compile_args = ['/Qcoarray:shared']
-        elif cid == 'nagfor':
-            """ NAG doesn't require any special arguments for Coarray """
             self.is_found = True
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE]

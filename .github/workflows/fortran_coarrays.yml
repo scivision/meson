@@ -1,0 +1,66 @@
+name: ci_fortran_coarrays
+
+on:
+  push:
+    paths:
+      - "mesonbuild/dependencies/base.py"
+      - "mesonbuild/dependencies/coarrays.py"
+      - "test cases/fortran/13 coarray/**"
+      - ".github/workflows/fortran_coarrays.yml"
+  pull_request:
+    paths:
+      - "mesonbuild/dependencies/base.py"
+      - "mesonbuild/dependencies/coarrays.py"
+      - "test cases/fortran/13 coarray/**"
+      - ".github/workflows/fortran_coarrays.yml"
+
+jobs:
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - run: python setup.py install
+    - name: Install packages
+      run: |
+        sudo apt update -yq
+        sudo apt install -yq --no-install-recommends ninja-build gfortran libopenmpi-dev libcoarrays-dev open-coarrays-bin
+    - run: meson setup "test cases/fortran/13 coarray" /tmp/build
+      env:
+        FC: gfortran
+    - uses: actions/upload-artifact@v1
+      with:
+        name: Linux_Coarrays_Configlog
+        path: /tmp/build/meson-logs/meson-log.txt
+    - run: meson test -C /tmp/build -v
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: Linux_Coarrays_Testlog
+        path: /tmp/build/meson-logs/testlog.txt
+
+  macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - run: python setup.py install
+    - run: brew install pkg-config gcc ninja open-mpi opencoarrays
+    - run: meson setup "test cases/fortran/13 coarray" /tmp/build
+      env:
+        FC: gfortran
+    - uses: actions/upload-artifact@v1
+      with:
+        name: MacOS_Coarrays_Configlog
+        path: /tmp/build/meson-logs/meson-log.txt
+    - run: meson test -C /tmp/build -v
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: MacOS_Coarrays_Testlog
+        path: /tmp/build/meson-logs/testlog.txt
