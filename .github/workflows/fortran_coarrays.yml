@@ -32,6 +32,7 @@ jobs:
       env:
         FC: gfortran
     - uses: actions/upload-artifact@v1
+      if: failure()
       with:
         name: Linux_Coarrays_Configlog
         path: /tmp/build/meson-logs/meson-log.txt
@@ -55,6 +56,7 @@ jobs:
       env:
         FC: gfortran
     - uses: actions/upload-artifact@v1
+      if: failure()
       with:
         name: MacOS_Coarrays_Configlog
         path: /tmp/build/meson-logs/meson-log.txt
