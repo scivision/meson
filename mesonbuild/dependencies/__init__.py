@@ -20,6 +20,7 @@ from .base import (  # noqa: F401
     PkgConfigDependency, CMakeDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language)
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
 from .coarrays import CoarrayDependency
+from .lapack import LapackDependency
 from .misc import (BlocksDependency, HDF5Dependency, MPIDependency, NetCDFDependency, OpenMPDependency, Python3Dependency, ThreadDependency, PcapDependency, CupsDependency, LibWmfDependency, LibGCryptDependency, GpgmeDependency, ShadercDependency)
 from .platform import AppleFrameworks
 from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, VulkanDependency
@@ -35,9 +36,12 @@ packages.update({
     'boost': BoostDependency,
     'cuda': CudaDependency,
 
+    # own files
+    'coarray': CoarrayDependency,
+    'lapack': LapackDependency,
+
     # From misc:
     'blocks': BlocksDependency,
-    'coarray': CoarrayDependency,
     'mpi': MPIDependency,
     'hdf5': HDF5Dependency,
     'netcdf': NetCDFDependency,
@@ -65,6 +69,7 @@ packages.update({
 })
 _packages_accept_language.update({
     'hdf5',
+    'lapack',
     'mpi',
     'netcdf',
     'openmp',
