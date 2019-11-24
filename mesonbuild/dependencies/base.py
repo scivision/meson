@@ -724,6 +724,9 @@ class PkgConfigDependency(ExternalDependency):
             elif arg.startswith('/'):
                 pargs = PurePath(arg).parts
                 tmpl = '{}:/{}'
+            elif arg.startswith(('-L', '-I')) or arg[1] == ':':
+                # clean out improper '\\ ' as comes from some Windows pkg-config files
+                arg = arg.replace('\\ ', ' ')
             if len(pargs) > 1 and len(pargs[1]) == 1:
                 arg = tmpl.format(pargs[1], '/'.join(pargs[2:]))
             converted.append(arg)
