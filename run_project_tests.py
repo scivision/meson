@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2012-2016 The Meson development team
+# Copyright 2012-2019 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -221,13 +221,13 @@ def validate_install(srcdir: str, installdir: Path, compiler, env) -> str:
         if not found:
             ret_msg += 'Expected file {} missing.\n'.format(fname)
     # Check if there are any unexpected files
-    found = get_relative_files_list_from_dir(installdir)
-    for fname in found:
+    flist = get_relative_files_list_from_dir(installdir)
+    for fname in flist:
         if fname not in expected:
             ret_msg += 'Extra file {} found.\n'.format(fname)
     if ret_msg != '':
         ret_msg += '\nInstall dir contents:\n'
-        for i in found:
+        for i in flist:
             ret_msg += '  - {}'.format(i)
     return ret_msg
 
@@ -273,15 +273,14 @@ def yellow(text):
     return mlog.yellow(text).get_text(mlog.colorize_console)
 
 
-def _run_ci_include(args: typing.List[str]) -> str:
+def _run_ci_include(args: typing.Sequence[str]) -> str:
     if not args:
         return 'At least one parameter required'
     try:
-        file_path = Path(args[0])
-        data = file_path.open(errors='ignore', encoding='utf-8').read()
+        data = Path(args[0]).read_text(encoding='utf-8', errors='ignore')
         return 'Included file {}:\n{}\n'.format(args[0], data)
     except Exception:
-        return 'Failed to open {} ({})'.format(args[0])
+        return 'Failed to open {}'.format(args[0])
     return 'Appended {} to the log'.format(args[0])
 
 ci_commands = {
@@ -289,7 +288,7 @@ ci_commands = {
 }
 
 def run_ci_commands(raw_log: str) -> typing.List[str]:
-    res = []
+    res = []  # type: typing.List[str]
     for l in raw_log.splitlines():
         if not l.startswith('!meson_ci!/'):
             continue
@@ -300,7 +299,7 @@ def run_ci_commands(raw_log: str) -> typing.List[str]:
     return res
 
 
-def run_test_inprocess(testdir):
+def run_test_inprocess(testdir: str) -> typing.Tuple[int, str, str, str]:
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
     old_stderr = sys.stderr
@@ -354,12 +353,10 @@ def run_test(skipped, testdir, extra_args, compiler, backend, flags, commands, s
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
-def pass_prefix_to_test(dirname):
-    if '39 prefix absolute' in dirname:
-        return False
-    return True
+def pass_prefix_to_test(dirname: str) -> bool:
+    return '39 prefix absolute' not in dirname
 
-def pass_libdir_to_test(dirname):
+def pass_libdir_to_test(dirname: str) -> bool:
     if '8 install' in dirname:
         return False
     if '38 libdir must be inside prefix' in dirname:
@@ -368,7 +365,8 @@ def pass_libdir_to_test(dirname):
         return False
     return True
 
-def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail):
+def _run_test(testdir, test_build_dir, install_dir, extra_args,
+              compiler, backend, flags, commands, should_fail: str):
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
     test_args = parse_test_args(testdir)
     gen_start = time.time()
@@ -477,7 +475,7 @@ def gather_tests(testdir: Path) -> typing.List[Path]:
     tests = [testdir / t[1] for t in test_nums]
     return tests
 
-def have_d_compiler():
+def have_d_compiler() -> bool:
     if shutil.which("ldc2"):
         return True
     elif shutil.which("ldc"):
@@ -496,7 +494,7 @@ def have_d_compiler():
         return True
     return False
 
-def have_objc_compiler():
+def have_objc_compiler() -> bool:
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
@@ -512,7 +510,7 @@ def have_objc_compiler():
             return False
     return True
 
-def have_objcpp_compiler():
+def have_objcpp_compiler() -> bool:
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
@@ -528,12 +526,10 @@ def have_objcpp_compiler():
             return False
     return True
 
-def have_java():
-    if shutil.which('javac') and shutil.which('java'):
-        return True
-    return False
+def have_java() -> bool:
+    return shutil.which('javac') and shutil.which('java'):
 
-def skippable(suite, test):
+def skippable(suite: str, test: str) -> bool:
     if not under_ci:
         return True
 
@@ -576,7 +572,7 @@ def skippable(suite, test):
     # Other framework tests are allowed to be skipped on other platforms
     return True
 
-def skip_csharp(backend):
+def skip_csharp(backend) -> bool:
     if backend is not Backend.ninja:
         return True
     if not shutil.which('resgen'):
@@ -734,7 +730,7 @@ def _run_tests(all_tests: typing.List[typing.Tuple[str, typing.List[Path], bool]
             # and getting it wrong by not doing logical number sorting.
             (testnum, testbase) = t.name.split(' ', 1)
             testname = '%.3d %s' % (int(testnum), testbase)
-            should_fail = False
+            should_fail = None
             suite_args = []
             if name.startswith('failing'):
                 should_fail = name.split('failing-')[1]
