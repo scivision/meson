@@ -30,4 +30,8 @@ jobs:
       with:
         python-version: '3.x'
     - run: python -m pip install mypy
-    - run: mypy --follow-imports=skip  mesonbuild/mtest.py mesonbuild/minit.py mesonbuild/msetup.py mesonbuild/wrap tools/ mesonbuild/modules/fs.py mesonbuild/dependencies/mpi.py mesonbuild/dependencies/hdf5.py
+    - run: |
+        mypy run_project_tests.py run_tests.py
+        mypy mesonbuild/mtest.py mesonbuild/minit.py mesonbuild/msetup.py
+        mypy mesonbuild/wrap/ tools/
+        mypy mesonbuild/modules/fs.py mesonbuild/dependencies/mpi.py mesonbuild/dependencies/hdf5.py

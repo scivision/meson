@@ -27,6 +27,14 @@ from ast import literal_eval
 from enum import Enum
 import tempfile
 from pathlib import Path, PurePath
+import argparse
+import json
+import xml.etree.ElementTree as ET
+import time
+import multiprocessing
+import concurrent.futures
+import re
+
 from mesonbuild import build
 from mesonbuild import environment
 from mesonbuild import compilers
@@ -35,17 +43,17 @@ from mesonbuild import mlog
 from mesonbuild import mtest
 from mesonbuild.mesonlib import MachineChoice, stringlistify, Popen_safe
 from mesonbuild.coredata import backendlist
-import argparse
-import json
-import xml.etree.ElementTree as ET
-import time
-import multiprocessing
-from concurrent.futures import ProcessPoolExecutor, CancelledError
-import re
+
 from run_tests import get_fake_options, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
 from run_tests import guess_backend
+
+ALL_TESTS = ['cmake', 'common', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
+             'kconfig', 'platform-osx', 'platform-windows', 'platform-linux',
+             'java', 'C#', 'vala',  'rust', 'd', 'objective c', 'objective c++',
+             'fortran', 'swift', 'cuda', 'python3', 'python', 'fpga', 'frameworks', 'nasm', 'wasm'
+             ]
 
 
 class BuildStep(Enum):
@@ -85,7 +93,16 @@ class AutoDeletedDir:
         # holding files open.
         mesonlib.windows_proof_rmtree(self.dir)
 
+compile_commands = ''  # type: str
+clean_commands = ''  # type: str
+install_commands = ''  # type: str
+uninstall_commands = ''  # type: str
+backend_flags = []  # type: typing.List[str]
+executor = None
+logfile = None  # type: typing.TextIO
+backend = None
 failing_logs = []
+futures = []  # type: typing.List[typing.Tuple[str, Path, concurrent.futures.Future]]
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
 do_debug = under_ci or print_debug
@@ -310,7 +327,7 @@ def run_test_inprocess(testdir: str) -> typing.Tuple[int, str, str, str]:
     try:
         returncode_test = mtest.run_with_args(['--no-rebuild'])
         if test_log_fname.exists():
-            test_log = test_log_fname.open(errors='ignore').read()
+            test_log = test_log_fname.read_text(errors='ignore')
         else:
             test_log = ''
         returncode_benchmark = mtest.run_with_args(['--no-rebuild', '--benchmark', '--logbase', 'benchmarklog'])
@@ -320,18 +337,16 @@ def run_test_inprocess(testdir: str) -> typing.Tuple[int, str, str, str]:
         os.chdir(old_cwd)
     return max(returncode_test, returncode_benchmark), mystdout.getvalue(), mystderr.getvalue(), test_log
 
-def parse_test_args(testdir):
-    args = []
-    try:
-        with open(os.path.join(testdir, 'test_args.txt'), 'r') as f:
-            content = f.read()
-            try:
-                args = literal_eval(content)
-            except Exception:
-                raise Exception('Malformed test_args file.')
-            args = stringlistify(args)
-    except FileNotFoundError:
-        pass
+def parse_test_args(testdir: str) -> typing.List[str]:
+    args = []  # type: typing.List[str]
+    file = Path(testdir, 'test_args.txt')
+    if file.is_file():
+        content = file.read_text(errors='ignore')
+        try:
+            args = literal_eval(content)
+        except Exception:
+            raise Exception('Malformed test_args file.')
+        args = stringlistify(args)
     return args
 
 # Build directory name must be the same so Ccache works over
@@ -365,7 +380,7 @@ def pass_libdir_to_test(dirname: str) -> bool:
         return False
     return True
 
-def _run_test(testdir, test_build_dir, install_dir, extra_args,
+def _run_test(testdir: str, test_build_dir: str, install_dir, extra_args,
               compiler, backend, flags, commands, should_fail: str):
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
     test_args = parse_test_args(testdir)
@@ -395,8 +410,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args,
                 setup_env[key] = val
     (returncode, stdo, stde) = run_configure(gen_args, env=setup_env)
     try:
-        logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
-        mesonlog = logfile.open(errors='ignore', encoding='utf-8').read()
+        mesonlog = Path(test_build_dir, 'meson-logs', 'meson-log.txt').read_text(errors='ignore', encoding='utf-8')
     except Exception:
         mesonlog = no_meson_log_msg
     cicmds = run_ci_commands(mesonlog)
@@ -488,10 +502,8 @@ def have_d_compiler() -> bool:
         # Don't know why. Don't know how to fix. Skip in this case.
         cp = subprocess.run(['dmd', '--version'],
                             stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-        if cp.stdout == b'':
-            return False
-        return True
+                            stderr=subprocess.PIPE, universal_newlines=True)
+        return cp.stdout != ''
     return False
 
 def have_objc_compiler() -> bool:
@@ -527,7 +539,7 @@ def have_objcpp_compiler() -> bool:
     return True
 
 def have_java() -> bool:
-    return shutil.which('javac') and shutil.which('java'):
+    return bool(shutil.which('javac') and shutil.which('java'))
 
 def skippable(suite: str, test: str) -> bool:
     if not under_ci:
@@ -572,26 +584,22 @@ def skippable(suite: str, test: str) -> bool:
     # Other framework tests are allowed to be skipped on other platforms
     return True
 
-def skip_csharp(backend) -> bool:
-    if backend is not Backend.ninja:
-        return True
-    if not shutil.which('resgen'):
+def skip_csharp(backend: Backend) -> bool:
+    if (backend is not Backend.ninja or
+       shutil.which('resgen')):
         return True
     if shutil.which('mcs'):
         return False
     if shutil.which('csc'):
         # Only support VS2017 for now. Earlier versions fail
         # under CI in mysterious ways.
-        try:
-            stdo = subprocess.check_output(['csc', '/version'])
-        except subprocess.CalledProcessError:
-            return True
+        pc = subprocess.run(['csc', '/version'], universal_newlines=True)
         # Having incrementing version numbers would be too easy.
         # Microsoft reset the versioning back to 1.0 (from 4.x)
         # when they got the Roslyn based compiler. Thus there
         # is NO WAY to reliably do version number comparisons.
         # Only support the version that ships with VS2017.
-        return not stdo.startswith(b'2.')
+        return pc.returncode != 0 or not pc.stdout.startswith('2.')
     return True
 
 # In Azure some setups have a broken rustc that will error out
@@ -602,7 +610,7 @@ def has_broken_rustc() -> bool:
     if os.path.exists(dirname):
         mesonlib.windows_proof_rmtree(dirname)
     os.mkdir(dirname)
-    open(dirname + '/sanity.rs', 'w').write('''fn main() {
+    Path(dirname, 'sanity.rs').write_text('''fn main() {
 }
 ''')
     pc = subprocess.run(['rustc', '-o', 'sanity.exe', 'sanity.rs'],
@@ -635,8 +643,10 @@ def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str,
         tests to run
     """
 
-    skip_fortran = not(shutil.which('gfortran') or shutil.which('flang') or
-                       shutil.which('pgfortran') or shutil.which('ifort'))
+    skip_fortran = not(shutil.which('gfortran') or
+                       shutil.which('flang') or
+                       shutil.which('pgfortran') or
+                       shutil.which('ifort'))
 
     # Name, subdirectory, skip condition.
     all_tests = [
@@ -670,8 +680,9 @@ def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str,
         ('wasm', 'wasm', shutil.which('emcc') is None or backend is not Backend.ninja),
     ]
 
+    names = [t[0] for t in all_tests]
+    assert names == ALL_TESTS, 'argparse("--only", choices=ALL_TESTS) need to be updated to match all_tests names'
     if only:
-        names = [t[0] for t in all_tests]
         ind = [names.index(o) for o in only]
         all_tests = [all_tests[i] for i in ind]
     gathered_tests = [(name, gather_tests(Path('test cases', subdir)), skip) for name, subdir, skip in all_tests]
@@ -714,7 +725,7 @@ def _run_tests(all_tests: typing.List[typing.Tuple[str, typing.List[Path], bool]
     # https://github.com/mesonbuild/meson/pull/2082
     if not mesonlib.is_windows():  # twice as fast on Windows by *not* multiplying by 2.
         num_workers *= 2
-    executor = ProcessPoolExecutor(max_workers=num_workers)
+    executor = concurrent.futures.ProcessPoolExecutor(max_workers=num_workers)
 
     for name, test_cases, skipped in all_tests:
         current_suite = ET.SubElement(junit_root, 'testsuite', {'name': name, 'tests': str(len(test_cases))})
@@ -724,28 +735,28 @@ def _run_tests(all_tests: typing.List[typing.Tuple[str, typing.List[Path], bool]
         else:
             print(bold('Running %s tests.' % name))
         print()
-        futures = []
+
         for t in test_cases:
             # Jenkins screws us over by automatically sorting test cases by name
             # and getting it wrong by not doing logical number sorting.
             (testnum, testbase) = t.name.split(' ', 1)
             testname = '%.3d %s' % (int(testnum), testbase)
             should_fail = None
-            suite_args = []
+            suite_args = []  # type: typing.List[str]
             if name.startswith('failing'):
                 should_fail = name.split('failing-')[1]
             if name.startswith('warning'):
                 suite_args = ['--fatal-meson-warnings']
                 should_fail = name.split('warning-')[1]
 
-            result = executor.submit(run_test, skipped, t.as_posix(), extra_args + suite_args,
+            future = executor.submit(run_test, skipped, t.as_posix(), extra_args + suite_args,
                                      system_compiler, backend, backend_flags, commands, should_fail)
-            futures.append((testname, t, result))
-        for (testname, t, result) in futures:
+            futures.append((testname, t, future))
+        for (testname, t, future) in futures:
             sys.stdout.flush()
             try:
-                result = result.result()
-            except CancelledError:
+                result = future.result()
+            except concurrent.futures.CancelledError:
                 continue
             if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(name, t.as_posix()))):
                 print(yellow('Skipping:'), t.as_posix())
@@ -936,13 +947,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('extra_args', nargs='*',
                         help='arguments that are passed directly to Meson (remember to have -- before these).')
-    parser.add_argument('--backend', default=None, dest='backend',
-                        choices=backendlist)
+    parser.add_argument('--backend', dest='backend', choices=backendlist)
     parser.add_argument('--failfast', action='store_true',
                         help='Stop running if test case fails')
     parser.add_argument('--no-unittests', action='store_true',
                         help='Not used, only here to simplify run_tests.py')
-    parser.add_argument('--only', help='name of test(s) to run', nargs='+')
+    parser.add_argument('--only', help='name of test(s) to run', nargs='+', choices=ALL_TESTS)
     options = parser.parse_args()
     setup_commands(options.backend)
 

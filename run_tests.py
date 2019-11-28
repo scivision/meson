@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import typing
 import os
 import sys
 import time
@@ -38,7 +39,7 @@ NINJA_1_9_OR_NEWER = False
 
 def guess_backend(backend, msbuild_exe: str):
     # Auto-detect backend if unspecified
-    backend_flags = []
+    backend_flags = []  # type: typing.List[str]
     if backend is None:
         if msbuild_exe is not None and (mesonlib.is_windows() and not _using_intelcl()):
             backend = 'vs' # Meson will auto-detect VS version to use
@@ -322,7 +323,7 @@ def main():
     if enable_coverage:
         os.makedirs('.coverage', exist_ok=True)
         sys.argv.remove('--cov')
-        import coverage
+        import coverage  # type: ignore
         coverage.process_startup()
     returncode = 0
     cross = options.cross
