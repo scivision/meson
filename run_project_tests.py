@@ -214,7 +214,7 @@ def platform_fix_name(fname: str, compiler, env) -> str:
 
 def validate_install(srcdir: str, installdir: Path, compiler, env) -> str:
     # List of installed files
-    info_file = Path(srcdir) / 'installed_files.txt'
+    info_file = Path(srcdir, 'installed_files.txt')
     installdir = Path(installdir)
     # If this exists, the test does not install any other files
     noinst_file = Path('usr/no-installed-files')
@@ -339,9 +339,9 @@ def run_test_inprocess(testdir: str) -> typing.Tuple[int, str, str, str]:
 
 def parse_test_args(testdir: str) -> typing.List[str]:
     args = []  # type: typing.List[str]
-    file = Path(testdir, 'test_args.txt')
-    if file.is_file():
-        content = file.read_text(errors='ignore')
+    filepath = Path(testdir, 'test_args.txt')
+    if filepath.is_file():
+        content = filepath.read_text(errors='ignore')
         try:
             args = literal_eval(content)
         except Exception:
@@ -856,11 +856,11 @@ def check_format():
         if '.eggs' in root or '_cache' in root:  # e.g. .mypy_cache
             continue
         for fname in filenames:
-            file = Path(fname)
-            if file.suffix.lower() in check_suffixes:
-                if file.name in ('sitemap.txt', 'meson-test-run.txt'):
+            filepath = Path(fname)
+            if filepath.suffix.lower() in check_suffixes:
+                if filepath.name in ('sitemap.txt', 'meson-test-run.txt'):
                     continue
-                check_file(root / file)
+                check_file(root / filepath)
 
 def check_meson_commands_work():
     global backend, compile_commands, test_commands, install_commands
