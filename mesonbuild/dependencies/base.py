@@ -1040,7 +1040,7 @@ class CMakeDependency(ExternalDependency):
         # Where all CMake "build dirs" are located
         self.cmake_root_dir = environment.scratch_dir
 
-        # T.List of successfully found modules
+        # List of successfully found modules
         self.found_modules = []
 
         # Initialize with None before the first return to avoid
@@ -1067,6 +1067,7 @@ class CMakeDependency(ExternalDependency):
 
         modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
         modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
+        cm_components = stringlistify(extract_as_list(kwargs, 'cmake_components'))
         cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
         cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
@@ -1086,7 +1087,7 @@ class CMakeDependency(ExternalDependency):
         if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[self.for_machine]):
             mlog.debug('Preliminary CMake check failed. Aborting.')
             return
-        self._detect_dep(name, modules, cm_args)
+        self._detect_dep(name, modules, cm_components, cm_args)
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
@@ -1264,7 +1265,7 @@ class CMakeDependency(ExternalDependency):
 
         return False
 
-    def _detect_dep(self, name: str, modules: T.List[T.Tuple[str, bool]], args: T.List[str]):
+    def _detect_dep(self, name: str, modules: T.List[T.Tuple[str, bool]], components: List[str], args: T.List[str]):
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
@@ -1282,11 +1283,16 @@ class CMakeDependency(ExternalDependency):
             gen_list += [CMakeDependency.class_working_generator]
         gen_list += CMakeDependency.class_cmake_generators
 
+        # CMake library components
+        # optional parameter to find_package that selects package features
+        component_args = ['-Dcmake_components=' + ';'.join(components)]
+
         for i in gen_list:
             mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
 
             # Prepare options
-            cmake_opts = ['-DNAME={}'.format(name), '-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))] + args + ['.']
+            cmake_opts = ['-DNAME={}'.format(name), '-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))]
+            cmake_opts += component_args + args + ['.']
             cmake_opts += self.traceparser.trace_args()
             cmake_opts += self._extra_cmake_opts()
             if len(i) > 0:
@@ -1380,7 +1386,7 @@ class CMakeDependency(ExternalDependency):
         for i, required in modules:
             if i not in self.traceparser.targets:
                 if not required:
-                    mlog.warning('CMake: T.Optional module', mlog.bold(self._original_module_name(i)), 'for', mlog.bold(name), 'was not found')
+                    mlog.warning('CMake: Optional module', mlog.bold(self._original_module_name(i)), 'for', mlog.bold(name), 'was not found')
                     continue
                 raise self._gen_exception('CMake: invalid module {} for {}.\n'
                                           'Try to explicitly specify one or more targets with the "modules" property.\n'
