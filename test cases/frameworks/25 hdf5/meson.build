@@ -10,18 +10,42 @@ endif
 exec = executable('exec', 'main.c', dependencies : h5c)
 test('HDF5 C', exec, timeout: 30)
 
+# try CMake finding
+# https://cmake.org/cmake/help/latest/module/FindHDF5.html
+h5c_cm = dependency('hdf5', language: 'c',
+                method: 'cmake',
+                required: false, disabler: true)
+cmakec = executable('cmakec', 'main.c', dependencies : h5c_cm)
+test('HDF5 C CMake', cmakec, timeout: 30)
+
 # --- C++ tests
-if add_languages('cpp')
+if add_languages('cpp', required: false)
   h5cpp = dependency('hdf5', language : 'cpp', required : false, disabler: true)
   execpp = executable('execpp', 'main.cpp', dependencies : h5cpp)
   test('HDF5 C++', execpp, timeout: 30)
+
+  # test Cmake finding
+  h5cpp_cm = dependency('hdf5', language: 'cpp',
+                    method: 'cmake',
+                    required: false, disabler: true)
+  cmakecpp = executable('cmakecpp', 'main.cpp', dependencies : h5cpp_cm)
+  test('HDF5 C++ CMake', cmakecpp, timeout: 30)
 endif
 
 # --- Fortran tests
-if add_languages('fortran')
+if add_languages('fortran', required: false)
   h5f = dependency('hdf5', language : 'fortran', required : false, disabler: true)
   exef = executable('exef', 'main.f90', dependencies : h5f)
   test('HDF5 Fortran', exef, timeout: 30)
+
+  # try CMake finding
+  h5f_cm = dependency('hdf5', language: 'fortran',
+                   method: 'cmake',
+                   required: false, disabler: true)
+
+  fcmake = executable('fcmake', 'main.f90', dependencies : h5f_cm)
+  test('HDF5 Fortran CMake', fcmake, timeout: 30)
+
 endif
 
 # Check we can apply a version constraint
