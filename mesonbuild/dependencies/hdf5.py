@@ -99,12 +99,24 @@ class HDF5Dependency(ExternalDependency):
             # ensure CMake COMPONENTS are handled for each language
             # generally as for pkg-config HDF5 case, user want HDF5-HL so include it by default.
             comps = set(kwargs.get('cmake_components', []))
+            ss_str = 'static' if kwargs.get('static') else 'shared'
+
+            mods = set(kwargs.get('modules', []))
+            mods |= {'hdf5::hdf5-{}'.format(ss_str), 'hdf5::hdf5_hl-{}'.format(ss_str)}
+
             comps |= {'C', 'HL'}
             if language == 'cpp':
                 comps.add('CXX')
+                mods |= {'hdf5::hdf5_cpp-{}'.format(ss_str), 'hdf5::hdf5_hl_cpp-{}'.format(ss_str)}
             if language == 'fortran':
                 comps |= {'Fortran', 'Fortran_HL'}
+                mods |= {'hdf5::hdf5_fortran-{}'.format(ss_str),
+                         'hdf5::hdf5_f90cstub-{}'.format(ss_str),
+                         'hdf5::hdf5_hl_fortran-{}'.format(ss_str),
+                         'hdf5::hdf5_hl_f90cstub-{}'.format(ss_str)}
+
             kwargs['cmake_components'] = list(comps)
+            kwargs['modules'] = list(mods)
 
             cmakedep = CMakeDependency('HDF5', environment, kwargs)
             if cmakedep.found():
