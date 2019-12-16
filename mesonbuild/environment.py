@@ -964,7 +964,7 @@ class Environment:
                 version = search_version(arm_ver_str)
                 full_version = arm_ver_str
                 cls = ArmclangCCompiler if lang == 'c' else ArmclangCPPCompiler
-                linker = ArmClangDynamicLinker(for_machine, [], version=version)
+                linker = ArmClangDynamicLinker(for_machine, version=version)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
