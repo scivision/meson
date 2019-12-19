@@ -23,9 +23,10 @@ from .base import (  # noqa: F401
 from .dev import ValgrindDependency, gmock_factory, gtest_factory, llvm_factory, zlib_factory
 from .coarrays import coarray_factory
 from .mpi import MPIDependency
+from .openmp import OpenMPDependency
 from .scalapack import ScalapackDependency
 from .misc import (
-    BlocksDependency, OpenMPDependency, cups_factory, curses_factory, gpgme_factory,
+    BlocksDependency,  cups_factory, curses_factory, gpgme_factory,
     libgcrypt_factory, libwmf_factory, netcdf_factory, pcap_factory, python3_factory,
     shaderc_factory, threads_factory,
 )
@@ -53,13 +54,13 @@ packages.update({
     'coarray': coarray_factory,
     'hdf5': HDF5Dependency,
     'mpi': MPIDependency,
+    'openmp': OpenMPDependency,
     'scalapack': ScalapackDependency,
 
     # From misc:
     'blocks': BlocksDependency,
     'curses': curses_factory,
     'netcdf': netcdf_factory,
-    'openmp': OpenMPDependency,
     'python3': python3_factory,
     'threads': threads_factory,
     'pcap': pcap_factory,

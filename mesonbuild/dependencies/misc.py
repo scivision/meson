@@ -23,6 +23,7 @@ import typing as T
 from .. import mlog
 from .. import mesonlib
 from ..environment import detect_cpu_family
+from ..mesonlib import listify
 
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency,
@@ -58,67 +59,37 @@ def netcdf_factory(env: 'Environment', for_machine: 'MachineChoice',
     return candidates
 
 
-class OpenMPDependency(ExternalDependency):
-    # Map date of specification release (which is the macro value) to a version.
-    VERSIONS = {
-        '201811': '5.0',
-        '201611': '5.0-revision1',  # This is supported by ICC 19.x
-        '201511': '4.5',
-        '201307': '4.0',
-        '201107': '3.1',
-        '200805': '3.0',
-        '200505': '2.5',
-        '200203': '2.0',
-        '199810': '1.0',
-    }
-
-    def __init__(self, environment, kwargs):
-        language = kwargs.get('language')
-        super().__init__('openmp', environment, kwargs, language=language)
-        self.is_found = False
-        if self.clib_compiler.get_id() == 'pgi':
-            # through at least PGI 19.4, there is no macro defined for OpenMP, but OpenMP 3.1 is supported.
-            self.version = '3.1'
-            self.is_found = True
-            self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
-            return
-        try:
-            openmp_date = self.clib_compiler.get_define(
-                '_OPENMP', '', self.env, self.clib_compiler.openmp_flags(), [self], disable_cache=True)[0]
-        except mesonlib.EnvironmentException as e:
-            mlog.debug('OpenMP support not available in the compiler')
-            mlog.debug(e)
-            openmp_date = None
-
-        if openmp_date:
-            self.version = self.VERSIONS[openmp_date]
-            # Flang has omp_lib.h
-            header_names = ('omp.h', 'omp_lib.h')
-            for name in header_names:
-                if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
-                    self.is_found = True
-                    self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
-                    break
-            if not self.is_found:
-                mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
-
-
 class ThreadDependency(ExternalDependency):
     def __init__(self, name: str, environment, kwargs):
         super().__init__(name, environment, kwargs)
-        self.is_found = True
-        # Happens if you are using a language with threads
-        # concept without C, such as plain Cuda.
-        if self.clib_compiler is None:
-            self.compile_args = []
-            self.link_args = []
-        else:
-            self.compile_args = self.clib_compiler.thread_flags(environment)
-            self.link_args = self.clib_compiler.thread_link_flags(environment)
+        self.is_found = False
+        methods = listify(self.methods)
+        if DependencyMethods.AUTO in methods:
+            self.is_found = True
+            # Happens if you are using a language with threads
+            # concept without C, such as plain Cuda.
+            if self.clib_compiler is None:
+                self.compile_args = []
+                self.link_args = []
+            else:
+                self.compile_args = self.clib_compiler.thread_flags(environment)
+                self.link_args = self.clib_compiler.thread_link_flags(environment)
+            return
+
+        if DependencyMethods.CMAKE in methods:
+            # for unit tests and for those who simply want
+            # dependency('threads', method: 'cmake')
+            cmakedep = CMakeDependency('Threads', environment, kwargs)
+            if cmakedep.found():
+                self.compile_args = cmakedep.get_compile_args()
+                self.link_args = cmakedep.get_link_args()
+                self.version = cmakedep.get_version()
+                self.is_found = True
+                return
 
     @staticmethod
     def get_methods():
-        return [DependencyMethods.AUTO, DependencyMethods.CMAKE]
+        return [DependencyMethods.CMAKE]
 
 
 class BlocksDependency(ExternalDependency):
