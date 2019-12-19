@@ -1036,6 +1036,7 @@ class CMakeDependency(ExternalDependency):
         # stored in the pickled coredata and recovered.
         self.cmakebin = None
         self.cmakeinfo = None
+        self.full_find = kwargs.get('cmake_full_find', False)
 
         # Where all CMake "build dirs" are located
         self.cmake_root_dir = environment.scratch_dir
@@ -1291,7 +1292,8 @@ class CMakeDependency(ExternalDependency):
             mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
 
             # Prepare options
-            cmake_opts = ['-DNAME={}'.format(name), '-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))]
+            cmake_opts = ['-DNAME={}'.format(name),
+                          '-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))]
             cmake_opts += component_args + args + ['.']
             cmake_opts += self.traceparser.trace_args()
             cmake_opts += self._extra_cmake_opts()
@@ -1501,8 +1503,17 @@ project(MesonTemp LANGUAGES {})
         return build_dir
 
     def _call_cmake(self, args, cmake_file: str, env=None):
+        """
+        Get ready to call CMake
+
+        full_find: if True, don't make fake CMake compiler cache files,
+        as this breaks CMake try_compile() needed for some packages
+        """
         build_dir = self._setup_cmake_dir(cmake_file)
-        return self.cmakebin.call_with_fake_build(args, build_dir, env=env)
+        if self.full_find:
+            return self.cmakebin.call(args, build_dir, env=env)
+        else:
+            return self.cmakebin.call_with_fake_build(args, build_dir, env=env)
 
     @staticmethod
     def get_methods():
