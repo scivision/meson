@@ -625,10 +625,10 @@ class CoreData:
                         .with_traceback(sys.exc_info()[2])
         raise MesonException('Tried to validate unknown option %s.' % option_name)
 
-    def get_external_args(self, for_machine: MachineChoice, lang):
+    def get_external_args(self, for_machine: MachineChoice, lang: str):
         return self.compiler_options[for_machine][lang + '_args'].value
 
-    def get_external_link_args(self, for_machine: MachineChoice, lang):
+    def get_external_link_args(self, for_machine: MachineChoice, lang: str):
         return self.compiler_options[for_machine][lang + '_link_args'].value
 
     def merge_user_options(self, options):

@@ -1011,10 +1011,12 @@ class Environment:
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
+
             if 'Intel(R) C++ Intel(R)' in err:
                 version = search_version(err)
                 target = 'x86' if 'IA-32' in err else 'x86_64'
                 cls = IntelClCCompiler if lang == 'c' else IntelClCPPCompiler
+                self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = XilinkDynamicLinker(for_machine, [], version=version)
                 return cls(
                     compiler, version, for_machine, is_cross, info=info,
@@ -1045,10 +1047,12 @@ class Environment:
                     target, linker=linker)
             if 'PGI Compilers' in out:
                 cls = PGICCompiler if lang == 'c' else PGICPPCompiler
+                self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = PGIDynamicLinker(compiler, for_machine, 'pgi', cls.LINKER_PREFIX, [], version=version)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross,
                     info, exe_wrap, linker=linker)
+
             if '(ICC)' in out:
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 if self.machines[for_machine].is_darwin():
@@ -1112,8 +1116,10 @@ class Environment:
             # the full version:
             version = out.strip().split('V')[-1]
             cpp_compiler = self.detect_cpp_compiler(for_machine)
+            cls = CudaCompiler
+            self.coredata.add_lang_args(cls.language, cls, for_machine, self)
             linker = CudaLinker(compiler, for_machine, 'nvlink', CudaCompiler.LINKER_PREFIX, [], version=CudaLinker.parse_version())
-            return CudaCompiler(ccache + compiler, version, for_machine, is_cross, exe_wrap, host_compiler=cpp_compiler, info=info, linker=linker)
+            return cls(ccache + compiler, version, for_machine, is_cross, exe_wrap, host_compiler=cpp_compiler, info=info, linker=linker)
         raise EnvironmentException('Could not find suitable CUDA compiler: "' + ' '.join(compilers) + '"')
 
     def detect_fortran_compiler(self, for_machine: MachineChoice):
@@ -1176,8 +1182,10 @@ class Environment:
                 if 'Intel(R) Visual Fortran' in err:
                     version = search_version(err)
                     target = 'x86' if 'IA-32' in err else 'x86_64'
+                    cls = IntelClFortranCompiler
+                    self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                     linker = XilinkDynamicLinker(for_machine, [], version=version)
-                    return IntelClFortranCompiler(
+                    return cls(
                         compiler, version, for_machine, is_cross, target,
                         info, exe_wrap, linker=linker)
 
@@ -1193,10 +1201,11 @@ class Environment:
                         exe_wrap, full_version=full_version)
 
                 if 'PGI Compilers' in out:
-                    linker = PGIDynamicLinker(
-                        compiler, for_machine, 'pgi',
-                        PGIFortranCompiler.LINKER_PREFIX, [], version=version)
-                    return PGIFortranCompiler(
+                    cls = PGIFortranCompiler
+                    self.coredata.add_lang_args(cls.language, cls, for_machine, self)
+                    linker = PGIDynamicLinker(compiler, for_machine, 'pgi',
+                                              cls.LINKER_PREFIX, [], version=version)
+                    return cls(
                         compiler, version, for_machine, is_cross, info, exe_wrap,
                         full_version=full_version, linker=linker)
 
