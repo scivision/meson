@@ -23,7 +23,6 @@ from ..environment import detect_cpu_family
 
 if T.TYPE_CHECKING:
     from .base import DependencyType
-    from ..compilers import Compiler
     from ..environment import Environment, MachineChoice
 
 
@@ -225,7 +224,7 @@ class MSMPIDependency(ExternalDependency):
             return
 
         self.is_found = True
-        self.link_args = ['-l' + os.path.join(libdir, 'msmpi')]
+        self.link_args = ['-L' + libdir, '-lmsmpi']
         self.compile_args = ['-I' + incdir, '-I' + os.path.join(incdir, post)]
         if self.language == 'fortran':
-            self.link_args.append('-l' + os.path.join(libdir, 'msmpifec'))
+            self.link_args.append('-lmsmpifec')
