@@ -101,6 +101,7 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
             cls_tools.append((OpenMPIConfigToolDependency, tool_names))
 
         for cls, names in cls_tools:
+            assert names, 'no MPI wrapper found'
             args = nwargs.copy()  # else candidates interfere with each other
             args['tools'] = [t for t in names if t]
             candidates.append(functools.partial(
