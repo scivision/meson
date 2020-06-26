@@ -7,6 +7,13 @@ mpic = dependency('mpi', language : 'c', required : false, method : method)
 if not mpic.found()
   error('MESON_SKIP_TEST: MPI not found, skipping.')
 endif
+if not cc.links('''
+#include <mpi.h>
+int main(int argc, char **argv)
+{int ier = MPI_Init(&argc, &argv);}
+''', dependencies: mpic, name: 'C MPI')
+  mpic = disabler()
+endif
 exec = executable('exec',
   'main.c',
   dependencies : mpic)
@@ -19,7 +26,6 @@ cpp = meson.get_compiler('cpp')
 mpicpp = dependency('mpi', language : 'cpp', required: false, method : method)
 if not cpp.links('''
 #include <mpi.h>
-#include <stdio.h>
 int main(int argc, char **argv) {MPI::Init(argc, argv);}
 ''', dependencies: mpicpp, name: 'C++ MPI')
   mpicpp = disabler()

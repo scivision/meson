@@ -72,9 +72,18 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
                 # OpenMPI is not available for Windows
                 # use MS-MPI, including for MSYS2
                 # MS-MPI compiler wrapper don't have version number, but MS-mpiexec has version
-                tool_names = ['mpiexec']
+                if language == 'c':
+                    tool_names = ['mpiexec','mpicc']
+                elif language == 'cpp':
+                    tool_names = ['mpiexec', 'mpic++']
+                elif language == 'fortran':
+                    tool_names = ['mpiexec', 'mpifort']
 
-                cls_tools = [(MSMPIConfigToolDependency, tool_names)]
+                nwargs["tools"] = tool_names
+                candidates.append(functools.partial(
+                    MSMPIConfigToolDependency, tool_names, env, nwargs, language=language))
+
+                cls_tools = []  # skip since we already added candidates
         else:
             # Linux, MacOS: try the environment variables for the tools first;
             # fall back to hardcoded names
@@ -217,15 +226,20 @@ class MSMPIConfigToolDependency(_MPIConfigToolDependency):
 
     version_arg = '-help'
 
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+    def __init__(self, names: T.Sequence[str], env: 'Environment', kwargs: T.Dict[str, T.Any],
                  language: T.Optional[str] = None):
-        super().__init__(name, env, kwargs, language=language)
+        super().__init__(names[0], env, kwargs, language=language)
         if not self.is_found:
             return
 
+        self.config = [names[1]]
+        breakpoint()
         args = self.get_config_value(['-show'], 'link and compile args')
+        breakpoint()
         self.compile_args = self._filter_compile_args(args)
         self.link_args = self._filter_link_args(args)
+
+        self.config = [names[0]]
 
     def _sanitize_version(self, out: str) -> str:
         out = out.split('\n', 1)[0]
@@ -242,8 +256,8 @@ class MSMPIDependency(ExternalDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
                  language: T.Optional[str] = None):
         super().__init__(name, env, kwargs, language=language)
-        # MSMPI only supports the C API
-        if language not in {'c', 'fortran', None}:
+
+        if language not in {'c', 'cpp', 'fortran'}:
             self.is_found = False
             return
         # MSMPI is only for windows, obviously
