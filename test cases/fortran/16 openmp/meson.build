@@ -9,9 +9,6 @@ fc = meson.get_compiler('fortran')
 if fc.get_id() == 'gcc' and fc.version().version_compare('<4.2.0')
   error('MESON_SKIP_TEST gcc is too old to support OpenMP.')
 endif
-if host_machine.system() == 'darwin'
-  error('MESON_SKIP_TEST macOS does not support OpenMP.')
-endif
 
 openmp = dependency('openmp')
 
