@@ -1054,7 +1054,7 @@ class Environment:
                 cls = GnuBFDDynamicLinker
             linker = cls(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
         elif 'Solaris' in e or 'Solaris' in o:
-            for line in (o+e).split('\n'):
+            for line in (o + e).split('\n'):
                 if 'ld: Software Generation Utilities' in line:
                     v = line.split(':')[2].lstrip()
                     break
@@ -1348,7 +1348,6 @@ class Environment:
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 
-
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, for_machine):
@@ -1450,8 +1449,10 @@ class Environment:
                     return SunFortranCompiler(
                         compiler, version, for_machine, is_cross, info,
                         exe_wrap, full_version=full_version, linker=linker)
-
-                if 'Intel(R) Visual Fortran' in err:
+                if any(s in err for s in ['Intel(R) Fortran Intel(R)', 'Intel(R) Fortran Compiler', 'Intel(R) Visual Fortran']):
+                    # * Visual Fortran is for < 2021
+                    # * Intel Fortran Intel: oneAPI, which replaces previous suite, classic
+                    # * Intel Fortran Compiler: ifx next gen
                     version = search_version(err)
                     target = 'x86' if 'IA-32' in err else 'x86_64'
                     cls = IntelClFortranCompiler
